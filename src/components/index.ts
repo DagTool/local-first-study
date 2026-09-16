@@ -1,6 +1,6 @@
 /**
  * Components — shared UI components.
- * Placeholder, sẽ được mở rộng ở các giai đoạn tiếp theo.
+ * Barrel export cho tất cả shared components.
  */
 
-export {}
+export { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar'
