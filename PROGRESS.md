@@ -50,9 +50,38 @@
 
 ---
 
-## Giai đoạn 1 — Database Layer (Dexie.js)
+## Giai đoạn 1 — PWA Nền tảng
 
-**Status:** ⏸️ Chờ Giai đoạn 0 pass
+**Status:** ✅ Hoàn thành
+
+### Checklist
+
+- [x] `src/app/manifest.ts` — Web App Manifest đầy đủ: name, short_name, display: standalone, start_url, scope, theme_color, background_color, lang, description, 4 icons (192×192, 512×512, maskable-512×512, apple-touch-icon-180×180), shortcuts
+- [x] `src/sw.ts` — Service Worker (Serwist): precache app shell (`__SW_MANIFEST`), `skipWaiting`, `clientsClaim`, `navigationPreload`, fallback về `/offline` cho document requests
+- [x] `next.config.ts` — `@serwist/next` webpack plugin: `swSrc`, `swDest`, disable trong dev; headers `no-cache` cho sw.js
+- [x] `src/app/offline/page.tsx` — Trang fallback offline với `<h1>Bạn đang offline</h1>` và `<RetryButton />`
+- [x] `src/app/layout.tsx` — `viewport.themeColor`, `appleWebApp.capable`, `<ServiceWorkerRegistrar />`
+- [x] `public/icons/` — 4 icon files: 192×192, 512×512, maskable-512×512, apple-touch-icon-180×180
+- [x] `src/tests/pwa/manifest.test.ts` — 11 unit tests cho manifest schema (Vitest) — ✅ 11/11 PASS
+- [x] `src/tests/e2e/offline.spec.ts` — 4 E2E tests với `context.setOffline(true)` (Playwright × 4 projects) — ✅ 16/16 PASS
+- [x] `.lighthouserc.json` — Cấu hình Lighthouse CI: PWA ≥ 95%, service-worker = 1.0, installable-manifest = 1.0
+- [x] Fix lint: `eslint.config.mjs` thêm `varsIgnorePattern: '^_'` cho `@typescript-eslint/no-unused-vars`
+- [x] Fix Zod v4: `SemesterSchema` tách `SemesterBaseSchema` (không có refinement) để `.omit()` hoạt động
+- [x] Fix fake-indexeddb: `.where('isActive').equals(1)` → `.filter(s => s.isActive === true)` (IndexedDB spec không hỗ trợ boolean key)
+
+### Giả định ghi nhận
+
+- SW bị disable trong `development` mode (`process.env.NODE_ENV === 'development'`) — E2E phải chạy sau `npm run build && npm start`
+- Lighthouse CI chạy bằng `npm run test:lighthouse` (cần server đang chạy) — không chạy trong pre-commit hook
+
+### Test Gate
+
+| Lệnh                | Kết quả                                        |
+| ------------------- | ---------------------------------------------- |
+| `npm run typecheck` | ✅ Pass (0 lỗi)                                |
+| `npm run lint`      | ✅ Pass (0 warnings)                           |
+| `npm run test`      | ✅ Pass (150/150 — 11 test files)              |
+| `npm run test:e2e`  | ✅ Pass (16/16 — offline.spec.ts × 4 projects) |
 
 ---
 

@@ -18,6 +18,15 @@ const eslintConfig = defineConfig([
     rules: {
       // Allow empty export in placeholder files
       '@typescript-eslint/no-empty-object-type': 'off',
+      // Ignore variables prefixed with _ (intentionally unused, e.g. destructuring)
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 ])
