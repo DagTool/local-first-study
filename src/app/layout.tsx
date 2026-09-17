@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar'
+import { AuthProvider } from '@/lib/auth/authStore'
 import './globals.css'
 
 const geistSans = Geist({
@@ -43,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="vi" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <ServiceWorkerRegistrar />
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )

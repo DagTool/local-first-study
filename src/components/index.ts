@@ -4,3 +4,4 @@
  */
 
 export { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar'
+export { AuthButtons } from './AuthButtons'

@@ -1,6 +1,11 @@
 /**
  * Lib — business logic thuần (không phụ thuộc React/Next).
- * Placeholder, sẽ được mở rộng ở các giai đoạn tiếp theo.
  */
 
-export {}
+export { db } from './db'
+export * from './db/repositories'
+export * from './db/schemas'
+export * from './db/namespaceDB'
+export * from './auth/authUtils'
+export * from './auth/authStore'
+export * from './auth/googleAuth'
