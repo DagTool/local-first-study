@@ -85,9 +85,46 @@
 
 ---
 
-## Giai đoạn 2 — Google Auth & Drive Service
+## Giai đoạn 2 — Lớp dữ liệu cục bộ (IndexedDB/Dexie)
 
-**Status:** ⏸️ Chờ Giai đoạn 1 pass
+**Status:** ✅ Hoàn thành
+
+### Checklist
+
+- [x] `src/lib/db/index.ts` — `StudyFlowDB` extends Dexie, định nghĩa 7 tables với indexes tối ưu: `users`, `semesters`, `courses`, `gradeComponents`, `scheduleSlots`, `notes` (`*tags` multi-entry), `tags`
+- [x] `src/lib/db/schemas.ts` — Zod schemas cho tất cả 7 entities: full schema + CreateSchema + UpdateSchema. `SemesterSchema` tách `SemesterBaseSchema` để `.omit()` hoạt động với Zod v4
+- [x] `src/lib/db/repositories/base.repo.ts` — Abstract base với `generateId()`, `now()`, `assertExists()`
+- [x] `src/lib/db/repositories/user.repo.ts` — CRUD + `findByGoogleId()`
+- [x] `src/lib/db/repositories/semester.repo.ts` — CRUD + `findActive()` (dùng `.filter()` thay `.equals(1)`)
+- [x] `src/lib/db/repositories/course.repo.ts` — CRUD + `findBySemester()`
+- [x] `src/lib/db/repositories/grade-component.repo.ts` — CRUD + `findByCourse()`
+- [x] `src/lib/db/repositories/schedule-slot.repo.ts` — CRUD + `findByCourse()` + `findByDay()`
+- [x] `src/lib/db/repositories/note.repo.ts` — CRUD + `findPinned()` + `findByCourse()` + `findByTag()`
+- [x] `src/lib/db/repositories/tag.repo.ts` — CRUD + `findByName()`
+- [x] `src/tests/db/schemas.test.ts` — 36 unit tests cho tất cả 7 Zod schemas
+- [x] `src/tests/db/user.repo.test.ts` — 14 tests (CRUD + findByGoogleId + invalid data)
+- [x] `src/tests/db/semester.repo.test.ts` — 12 tests (CRUD + findActive + endDate validation)
+- [x] `src/tests/db/course.repo.test.ts` — 13 tests (CRUD + findBySemester + invalid credits/color)
+- [x] `src/tests/db/grade-component.repo.test.ts` — 15 tests (CRUD + findByCourse + weight/score validation)
+- [x] `src/tests/db/schedule-slot.repo.test.ts` — 14 tests (CRUD + findByCourse + findByDay + time format)
+- [x] `src/tests/db/note.repo.test.ts` — 17 tests (CRUD + findPinned + findByTag + findByCourse)
+- [x] `src/tests/db/tag.repo.test.ts` — 14 tests (CRUD + findByName + invalid hex/name)
+- [x] `src/tests/db/migration.test.ts` — 2 integration tests (v1→v2 migration, bulk upgrade)
+- [x] `src/tests/db/helpers.ts` — `createTestDB()` helper cho test isolation
+
+### Giả định ghi nhận
+
+- Boolean fields (`isActive`, `isPinned`, `isArchived`) không dùng `where().equals(1/0)` vì `fake-indexeddb` không hỗ trợ boolean làm IDB key — dùng `.filter()` thay thế
+- `fake-indexeddb` tự động được reset khi `db.delete()` gọi trong `afterEach`
+
+### Test Gate
+
+| Lệnh                | Kết quả                                        |
+| ------------------- | ---------------------------------------------- |
+| `npm run typecheck` | ✅ Pass (0 lỗi)                                |
+| `npm run lint`      | ✅ Pass (0 warnings)                           |
+| `npm run test`      | ✅ Pass (150/150 — 11 test files)              |
+| `npm run test:e2e`  | ✅ Pass (24/24 — smoke + offline × 4 projects) |
 
 ---
 
