@@ -11,7 +11,15 @@ import { defineConfig, devices } from '@playwright/test'
  *   npm run build && npm run test:e2e
  *
  * Hoặc dùng reuseExistingServer=true nếu server đã chạy sẵn.
+ *
+ * NOTE: WebKit (exitCode=0xC0000142 / STATUS_DLL_INIT_FAILED) crash trên
+ * Windows 25H2 Insider Preview — giới hạn đã biết của Playwright WebKit 2359.
+ * webkit + mobile-safari chỉ chạy trên Linux/macOS (CI).
+ * Trên Windows: chromium + mobile-chrome (2 projects).
  */
+
+const isWindows = process.platform === 'win32'
+
 export default defineConfig({
   testDir: './src/tests/e2e',
   fullyParallel: true,
@@ -30,19 +38,29 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // WebKit crash trên Windows 25H2 (STATUS_DLL_INIT_FAILED) — chỉ chạy trên Linux/macOS CI
+    ...(!isWindows
+      ? [
+          {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
+          },
+        ]
+      : []),
     // Mobile viewports
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 7'] },
     },
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 14'] },
-    },
+    // mobile-safari dùng WebKit engine — skip trên Windows cùng lý do
+    ...(!isWindows
+      ? [
+          {
+            name: 'mobile-safari',
+            use: { ...devices['iPhone 14'] },
+          },
+        ]
+      : []),
   ],
   webServer: {
     // Dùng production server để SW hoạt động
