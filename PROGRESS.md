@@ -189,111 +189,60 @@
 
 ---
 
-## Giai đoạn 4 — Note Management
+## Giai đoạn 4 — Bộ đồng bộ Google Drive (Sync Engine)
+
+**Status:** ✅ Hoàn thành
+
+### Checklist
+
+- [x] `src/lib/sync/types.ts` — Định nghĩa types: `SyncPayload`, `ConflictWinner`, `ConflictResolution`, `SyncResult`, `DriveFileMetadata`; constants `SYNC_PAYLOAD_VERSION=1`, `DRIVE_FILE_NAME='studyflow-snapshot.json'`
+- [x] `src/lib/sync/conflictResolver.ts` — `resolveConflict()`: hàm thuần túy LWW, ma trận 5 cases (no-local / no-remote / local wins / remote wins / equal)
+- [x] `src/lib/sync/serializer.ts` — `dumpDB()`: đọc song song 7 tables → SyncPayload (modifiedTime = max updatedAt); `restoreDB()`: transaction rw, clear + bulkPut (atomic)
+- [x] `src/lib/sync/driveClient.ts` — `readDriveSnapshot()` + `writeDriveSnapshot()`: Google Drive REST API v3 trực tiếp từ browser, multipart upload, `DriveAuthError` + `DriveApiError`
+- [x] `src/lib/sync/syncEngine.ts` — `SyncEngine`: orchestrator đầy đủ (dump → read → resolve → apply); `syncWithRetry()`: exponential backoff, không retry 401
+- [x] `src/lib/sync/index.ts` — Re-export toàn bộ public API
+- [x] `src/tests/mocks/drive-handlers.ts` — MSW mock Drive API v3: LIST/GET/POST/PATCH, in-memory `driveStore`, `parseMultipartContent()`, error handlers (401/429/network)
+- [x] `src/tests/mocks/server.ts` — MSW server setup với `driveHandlers`
+- [x] `src/tests/sync/conflictResolver.test.ts` — 9 unit tests: ma trận đầy đủ T1–T9 (no-local, no-remote, remote>local, local>remote, equal, both null, boundary ±1ms, data integrity)
+- [x] `src/tests/sync/serializer.test.ts` — 10 unit tests: dumpDB (S1–S6) + restoreDB (S7–S10) + roundtrip idempotent
+- [x] `src/tests/sync/driveClient.test.ts` — 8 unit tests (D1–D8): read/write/roundtrip/create/update/401/network-error (MSW)
+- [x] `src/tests/sync/syncEngine.integration.test.ts` — 10 integration tests (I1–I10): full cycle push/pull, conflict scenarios, retry, 401, complex conflict với multi-notes
+- [x] `src/components/SyncStatus.tsx` — UI: `data-testid="sync-status"/"sync-button"/"sync-badge"`, badge states (idle/syncing/synced/error), auto-sync on `online`/`app-online` events
+- [x] `src/app/page.tsx` — Tích hợp `<SyncStatus />` vào trang chủ cạnh AuthButtons
+
+### Giả định ghi nhận
+
+- `isEmptyPayload()` trong SyncEngine: DB rỗng được treat như `null` (no-local) để tránh override remote bằng empty snapshot có `Date.now()` mới hơn
+- `modifiedTime` của SyncPayload = `max(updatedAt)` trên tất cả entities — đây là timestamp LWW thực tế, không phải `Date.now()` tại thời điểm dump
+- Auto-sync trigger thông qua cả `window.online` (thật) và `window.app-online` (testing seam cho Playwright)
+- E2E tests dùng `serviceWorkers: 'block'` để Playwright route interception không bị SW chặn
+- Retry delay test (I7) dùng custom MSW handler override — fail lần 1, pass lần 2
+
+### Test Gate — Giai đoạn 4
+
+| Lệnh                | Kết quả                                                 |
+| ------------------- | ------------------------------------------------------- |
+| `npm run typecheck` | ✅ 0 lỗi                                                |
+| `npm run lint`      | ✅ 0 warnings                                           |
+| `npm run test`      | ✅ 231/231 (18 files)                                   |
+| `npm run test:e2e`  | ✅ 22/22 (2 projects Windows: chromium + mobile-chrome) |
+
+**E2E Sync — Chi tiết (Windows, 2 projects × 4 tests = 8):**
+
+- E1: SyncStatus hiển thị khi có accessToken ✅
+- E2: **Độ trễ sync < 3000ms (DoD bắt buộc) ✅** — assert bằng `expect(elapsed).toBeLessThan(3000)`
+- E3: Badge qua 'Đang sync' → 'Đã sync' ✅
+- E4: Online event auto-trigger sync < 3s ✅
+
+---
+
+## Giai đoạn 5 — Note Management (CRUD + Search + UI)
 
 **Status:** 📋 Ready to start
 
-### Scope
-
-CRUD operations for notes with advanced features:
-
-- **Create:** `noteRepo.create()` — validate title/content, auto-generate ID + timestamps, default `isPinned=false`, `isArchived=false`
-- **Read:** `noteRepo.getById()`, `noteRepo.findByCourse()`, `noteRepo.findByTag()`, `noteRepo.findPinned()`, `noteRepo.search()` (title/content full-text)
-- **Update:** `noteRepo.update()` — validate mutations, touch `updatedAt`, preserve `createdAt`
-- **Delete:** `noteRepo.delete()` — soft delete or hard delete (TBD)
-- **Pin/Archive:** `togglePin()`, `toggleArchive()` — helpers for common mutations
-- **Tag Management:** `addTag()`, `removeTag()` — update `tags` multi-entry index + tag refcount
-- **Search:** Full-text search on title/content (Dexie `.filter()` + regex)
-
-### Test Strategy (TDD strict)
-
-1. **Unit tests** (`src/tests/db/note.repo.test.ts`) — 17 tests existing:
-   - ✅ CRUD operations (create, getById, update, delete)
-   - ✅ Relationships (findByCourse, findByTag, findPinned)
-   - ✅ Validation (title/content required, tag sync)
-   - ❌ Search operations (NEW — TBD)
-   - ❌ Pin/Archive toggle (NEW — TBD)
-   - ❌ Tag refcount management (NEW — TBD)
-
-2. **Integration tests** (`src/tests/auth/note-isolation.test.ts`) — NEW:
-   - Namespace isolation: User A notes NOT visible to User B
-   - Namespace isolation: User B cannot modify User A notes
-   - Tag isolation: User A tags NOT visible to User B
-
-3. **Component tests** (`src/tests/ui/NoteEditor.test.tsx`) — NEW:
-   - NoteEditor (create/edit form): title, content, tags, pinned checkbox
-   - NoteList (display notes with filters): all, pinned, archived, by-course, by-tag, search
-   - NoteCard (note item): edit/delete/pin/archive buttons, tag pills
-
-4. **E2E tests** (`src/tests/e2e/notes.spec.ts`) — NEW:
-   - Create note → appears in list
-   - Edit note → updates in real time
-   - Pin note → moves to top
-   - Search notes → filters correctly
-   - Full workflow: create→tag→pin→archive→restore→delete
-
-### File Structure
-
-```
-src/
-  components/
-    NoteEditor.tsx        — Form: title, content, tags, pinned checkbox
-    NoteList.tsx          — List with filters (all/pinned/archived/by-course/search)
-    NoteCard.tsx          — Note item card with actions (edit/delete/pin/archive)
-    TagPill.tsx           — Tag display with remove button
-  features/
-    notes/
-      index.ts            — export useNotes() hook + NotesProvider
-      notesStore.tsx      — useNotes() context: CRUD + filter state + search
-  tests/
-    db/
-      note.repo.test.ts   — ✅ (17 existing) + NEW: search, pin/archive, tag refcount
-    auth/
-      note-isolation.test.ts — NEW: namespace isolation (A vs B)
-    ui/
-      NoteEditor.test.tsx — NEW: form validation, tag selection
-      NoteList.test.tsx   — NEW: filter + search + render
-      NoteCard.test.tsx   — NEW: edit/delete/pin/archive actions
-    e2e/
-      notes.spec.ts       — NEW: full workflow
-```
-
-### Definition of Done
-
-- ✅ **ALL unit + integration tests PASS (194 → +44 = 238 total)**
-  - 17 unit tests: note.repo (search, pin/archive, tag refcount)
-  - 12 integration tests: namespace isolation
-  - 15 component tests: NoteEditor, NoteList, NoteCard
-- ✅ **Test coverage:** 100% of note CRUD + namespace isolation
-- ✅ **No regression:** DB tests + PWA tests + Auth tests still pass
-- ✅ **Typecheck + Lint + Test gates pass**
-- ✅ **E2E tests pass (28 → +20 = 48 total)** — new notes.spec.ts (16 × 4 projects) + auth-ui smoke (4 × 1 project retained)
-- ✅ **Namespace isolation DoD:** User A cannot see/modify/delete User B notes — validated by integration tests
-
-### Implementation Order
-
-1. Write unit tests RED (note.repo search + pin/archive + tag refcount)
-2. Write integration tests RED (namespace isolation)
-3. Write component tests RED (NoteEditor, NoteList, NoteCard)
-4. Write E2E tests RED (notes.spec.ts full workflow)
-5. Implement `notesStore.tsx` (useNotes context + CRUD + filters)
-6. Implement components (NoteEditor, NoteList, NoteCard, TagPill)
-7. Test gates: typecheck ✅ + lint ✅ + test ✅ + e2e ✅
-8. Git commit `feat(notes): CRUD + search + pin/archive + namespace isolation — Giai đoạn 4`
-
 ---
 
-**Status:** ⏸️ Chờ Giai đoạn 4 pass
-
----
-
-## Giai đoạn 5 — Learning Progress Tracking
-
-**Status:** ⏸️ Chờ Giai đoạn 4 pass
-
----
-
-## Giai đoạn 6 — Sync Engine (Google Drive)
+## Giai đoạn 6 — Learning Progress Tracking
 
 **Status:** ⏸️ Chờ Giai đoạn 5 pass
 

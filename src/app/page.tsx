@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthButtons } from '@/components'
+import { SyncStatus } from '@/components/SyncStatus'
 
 export default function HomePage() {
   return (
@@ -14,7 +15,10 @@ export default function HomePage() {
         }}
       >
         <h1>StudyFlow</h1>
-        <AuthButtons />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <SyncStatus />
+          <AuthButtons />
+        </div>
       </div>
       <p>Quản lý ghi chú &amp; theo dõi học tập cá nhân</p>
     </main>

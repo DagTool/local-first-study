@@ -20,12 +20,21 @@
 
 'use client'
 
-import { createContext, useCallback, useContext, useReducer, useRef, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+  type ReactNode,
+} from 'react'
 import { decodeGoogleIdToken, deriveUserKey } from './authUtils'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LS_KEY = 'auth_id_token'
+const LS_ACCESS_KEY = 'auth_access_token'
 
 // ─── State & Action types ─────────────────────────────────────────────────────
 
@@ -35,6 +44,8 @@ export interface AuthState {
   name: string | null
   picture: string | null
   idToken: string | null
+  /** Google OAuth 2.0 access token — dùng cho Drive API (scope: drive.appdata) */
+  accessToken: string | null
 }
 
 type AuthAction =
@@ -46,6 +57,7 @@ type AuthAction =
         name: string
         picture: string
         idToken: string
+        accessToken: string | null
       }
     }
   | { type: 'SIGN_OUT' }
@@ -56,6 +68,7 @@ const initialState: AuthState = {
   name: null,
   picture: null,
   idToken: null,
+  accessToken: null,
 }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
@@ -69,6 +82,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         name: action.payload.name,
         picture: action.payload.picture,
         idToken: action.payload.idToken,
+        accessToken: action.payload.accessToken,
       }
     case 'SIGN_OUT':
       return initialState
@@ -84,8 +98,10 @@ export interface AuthContextValue {
   /**
    * Decode a Google ID token, set auth state, and persist the token to
    * localStorage. Throws if the token is malformed or missing required fields.
+   * @param idToken    - Google ID token (JWT)
+   * @param accessToken - Google OAuth 2.0 access token (for Drive API). Optional.
    */
-  signIn: (idToken: string) => void
+  signIn: (idToken: string, accessToken?: string | null) => void
   /**
    * Clear auth state and remove the persisted token from localStorage.
    */
@@ -109,23 +125,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // multiple times without double-decoding.
   const restoredRef = useRef(false)
 
-  const signIn = useCallback((idToken: string) => {
+  const signIn = useCallback((idToken: string, accessToken: string | null = null) => {
     const { email, name, picture } = decodeGoogleIdToken(idToken)
     const userKey = deriveUserKey(email)
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(LS_KEY, idToken)
+      if (accessToken) localStorage.setItem(LS_ACCESS_KEY, accessToken)
     }
 
     dispatch({
       type: 'SIGN_IN',
-      payload: { userKey, email, name, picture, idToken },
+      payload: { userKey, email, name, picture, idToken, accessToken },
     })
   }, [])
 
   const signOut = useCallback(() => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(LS_KEY)
+      localStorage.removeItem(LS_ACCESS_KEY)
     }
     dispatch({ type: 'SIGN_OUT' })
   }, [])
@@ -142,15 +160,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { email, name, picture } = decodeGoogleIdToken(stored)
       const userKey = deriveUserKey(email)
+      const accessToken = localStorage.getItem(LS_ACCESS_KEY)
       dispatch({
         type: 'SIGN_IN',
-        payload: { userKey, email, name, picture, idToken: stored },
+        payload: { userKey, email, name, picture, idToken: stored, accessToken },
       })
     } catch {
       // Token is stale / malformed — clear it so the user is prompted to sign in again.
       localStorage.removeItem(LS_KEY)
+      localStorage.removeItem(LS_ACCESS_KEY)
     }
   }, [])
+
+  // Auto-restore session từ localStorage khi AuthProvider mount lần đầu.
+  // Đây là hành vi đúng cho PWA: user reload trang → vẫn còn logged-in.
+  // useEffect chỉ chạy phía client (browser) — không chạy trong SSR.
+  useEffect(() => {
+    restoreSession()
+  }, [restoreSession])
 
   return (
     <AuthContext.Provider value={{ state, signIn, signOut, restoreSession }}>
