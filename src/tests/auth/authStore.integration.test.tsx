@@ -79,10 +79,12 @@ function wrapper({ children }: { children: ReactNode }) {
 describe('AuthStore — signIn', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('signIn: sets userKey, email, name, picture từ token', () => {
@@ -137,10 +139,12 @@ describe('AuthStore — signIn', () => {
 describe('AuthStore — signOut', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('signOut: xóa toàn bộ state về null', () => {
@@ -178,10 +182,12 @@ describe('AuthStore — signOut', () => {
 describe('AuthStore — restoreSession', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('restoreSession: rehydrate từ localStorage khi có token hợp lệ', () => {
@@ -239,10 +245,12 @@ describe('AuthStore — restoreSession', () => {
 describe('AuthStore — User Switch (A → B isolation)', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('sign-in Alice rồi sign-out rồi sign-in Bob → state là của Bob, không còn Alice', () => {

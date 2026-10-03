@@ -130,8 +130,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userKey = deriveUserKey(email)
 
     if (typeof window !== 'undefined') {
+      sessionStorage.setItem(LS_KEY, idToken)
       localStorage.setItem(LS_KEY, idToken)
-      if (accessToken) localStorage.setItem(LS_ACCESS_KEY, accessToken)
+      if (accessToken) {
+        // Chỉ lưu accessToken vào sessionStorage (ưu tiên memory/session, tránh localStorage cho token nhạy cảm)
+        sessionStorage.setItem(LS_ACCESS_KEY, accessToken)
+        localStorage.removeItem(LS_ACCESS_KEY)
+      }
     }
 
     dispatch({
@@ -142,6 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(LS_KEY)
+      sessionStorage.removeItem(LS_ACCESS_KEY)
       localStorage.removeItem(LS_KEY)
       localStorage.removeItem(LS_ACCESS_KEY)
     }
@@ -154,19 +161,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (typeof window === 'undefined') return
 
-    const stored = localStorage.getItem(LS_KEY)
+    // Kiểm tra sessionStorage trước (ưu tiên memory/session an toàn), sau đó fallback localStorage
+    const stored = sessionStorage.getItem(LS_KEY) ?? localStorage.getItem(LS_KEY)
     if (!stored) return
 
     try {
       const { email, name, picture } = decodeGoogleIdToken(stored)
       const userKey = deriveUserKey(email)
-      const accessToken = localStorage.getItem(LS_ACCESS_KEY)
+
+      // accessToken: đọc từ sessionStorage trước; nếu có ở localStorage thì di chuyển sang sessionStorage rồi xóa ngay
+      let accessToken = sessionStorage.getItem(LS_ACCESS_KEY)
+      if (!accessToken && localStorage.getItem(LS_ACCESS_KEY)) {
+        accessToken = localStorage.getItem(LS_ACCESS_KEY)
+        if (accessToken) {
+          sessionStorage.setItem(LS_ACCESS_KEY, accessToken)
+        }
+        localStorage.removeItem(LS_ACCESS_KEY)
+      }
+
       dispatch({
         type: 'SIGN_IN',
         payload: { userKey, email, name, picture, idToken: stored, accessToken },
       })
     } catch {
       // Token is stale / malformed — clear it so the user is prompted to sign in again.
+      sessionStorage.removeItem(LS_KEY)
+      sessionStorage.removeItem(LS_ACCESS_KEY)
       localStorage.removeItem(LS_KEY)
       localStorage.removeItem(LS_ACCESS_KEY)
     }

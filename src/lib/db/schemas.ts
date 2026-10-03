@@ -110,6 +110,7 @@ export const CourseSchema = z.object({
   name: z.string().min(1, 'Tên môn học không được rỗng').max(200),
   credits: z.number().int().min(1, 'Số tín chỉ tối thiểu là 1').max(10, 'Số tín chỉ tối đa là 10'),
   color: hexColorSchema.optional(),
+  lecturer: z.string().max(200, 'Tên giảng viên quá dài').optional(),
 })
 
 export type Course = z.infer<typeof CourseSchema>

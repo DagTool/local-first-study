@@ -56,9 +56,12 @@ test.describe('PWA — Offline support', () => {
     const swControlled = await page.evaluate(async (): Promise<boolean> => {
       if (!('serviceWorker' in navigator)) return false
 
-      // Chờ SW ready (installed + activated)
-      const reg = await navigator.serviceWorker.ready
-      if (!reg.active) return false
+      // Chờ SW ready (installed + activated) với timeout 5s
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ])
+      if (!reg || !reg.active) return false
 
       // Nếu SW chưa control trang, chờ controllerchange event
       if (navigator.serviceWorker.controller) return true

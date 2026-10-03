@@ -81,16 +81,18 @@ export function AuthButtons() {
           </div>
           <button
             data-testid="sign-out-button"
+            aria-label="Đăng xuất khỏi hệ thống"
             onClick={handleSignOut}
             disabled={isLoading}
             style={{
               padding: '0.5rem 1rem',
-              backgroundColor: '#ef4444',
+              backgroundColor: '#b91c1c',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.6 : 1,
+              fontWeight: 600,
             }}
           >
             {isLoading ? 'Đang xử lý...' : 'Đăng xuất'}
@@ -99,16 +101,18 @@ export function AuthButtons() {
       ) : (
         <button
           data-testid="sign-in-button"
+          aria-label="Đăng nhập bằng tài khoản Google"
           onClick={handleSignIn}
           disabled={isLoading}
           style={{
             padding: '0.5rem 1rem',
-            backgroundColor: '#3b82f6',
+            backgroundColor: '#1d4ed8',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: isLoading ? 'not-allowed' : 'pointer',
             opacity: isLoading ? 0.6 : 1,
+            fontWeight: 600,
           }}
         >
           {isLoading ? 'Đang xử lý...' : 'Đăng nhập với Google'}

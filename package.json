@@ -23,7 +23,15 @@
   },
   "dependencies": {
     "@serwist/next": "^9.5.12",
+    "@tiptap/extension-placeholder": "^3.31.4",
+    "@tiptap/extension-task-item": "^3.31.4",
+    "@tiptap/extension-task-list": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
+    "chart.js": "^4.5.1",
     "dexie": "^4.4.6",
+    "fuse.js": "^7.5.0",
     "jwt-decode": "^4.0.0",
     "next": "16.3.5",
     "react": "19.2.8",
@@ -32,6 +40,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
